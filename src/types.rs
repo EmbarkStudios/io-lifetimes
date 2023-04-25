@@ -29,6 +29,97 @@ use {
     windows_sys::Win32::System::Threading::{GetCurrentProcess, GetCurrentProcessId},
 };
 
+#[cfg(all(windows, feature = "close"))]
+mod bindings {
+    #![allow(non_camel_case_types, non_snake_case)]
+
+    pub type BOOL = i32;
+    pub type HANDLE = isize;
+    pub type DUPLICATE_HANDLE_OPTIONS = u32;
+    pub const DUPLICATE_CLOSE_SOURCE: DUPLICATE_HANDLE_OPTIONS = 1;
+    pub const DUPLICATE_SAME_ACCESS: DUPLICATE_HANDLE_OPTIONS = 2;
+    pub type HANDLE_FLAGS = u32;
+    pub const HANDLE_FLAG_INHERIT: HANDLE_FLAGS = 1;
+    pub const HANDLE_FLAG_PROTECT_FROM_CLOSE: HANDLE_FLAGS = 2;
+    pub const SOCKET_ERROR: i32 = -1;
+    pub type WSA_ERROR = i32;
+    pub const WSAEINVAL: WSA_ERROR = 10022;
+    pub const WSAEPROTOTYPE: WSA_ERROR = 10041;
+    pub type SOCKET = usize;
+    #[repr(C)]
+    pub struct GUID {
+        pub data1: u32,
+        pub data2: u16,
+        pub data3: u16,
+        pub data4: [u8; 8],
+    }
+
+    #[repr(C)]
+    pub struct WSAPROTOCOLCHAIN {
+        pub ChainLen: i32,
+        pub ChainEntries: [u32; 7],
+    }
+    #[repr(C)]
+    pub struct WSAPROTOCOL_INFOW {
+        pub dwServiceFlags1: u32,
+        pub dwServiceFlags2: u32,
+        pub dwServiceFlags3: u32,
+        pub dwServiceFlags4: u32,
+        pub dwProviderFlags: u32,
+        pub ProviderId: GUID,
+        pub dwCatalogEntryId: u32,
+        pub ProtocolChain: WSAPROTOCOLCHAIN,
+        pub iVersion: i32,
+        pub iAddressFamily: i32,
+        pub iMaxSockAddr: i32,
+        pub iMinSockAddr: i32,
+        pub iSocketType: i32,
+        pub iProtocol: i32,
+        pub iProtocolMaxOffset: i32,
+        pub iNetworkByteOrder: i32,
+        pub iSecurityScheme: i32,
+        pub dwMessageSize: u32,
+        pub dwProviderReserved: u32,
+        pub szProtocol: [u16; 256],
+    }
+    #[link(name = "kernel32", kind = "raw-dylib")]
+    extern "system" {
+        pub fn CloseHandle(hObject: HANDLE) -> BOOL;
+        pub fn DuplicateHandle(
+            hSourceProcessHandle: HANDLE,
+            hSourceHandle: HANDLE,
+            hTargetProcessHandle: HANDLE,
+            lpTargetHandle: *mut HANDLE,
+            dwDesiredAccess: u32,
+            bInheritHandle: BOOL,
+            dwOptions: DUPLICATE_HANDLE_OPTIONS,
+        ) -> BOOL;
+        pub fn SetHandleInformation(hObject: HANDLE, dwMask: u32, dwFlags: HANDLE_FLAGS) -> BOOL;
+        pub fn GetCurrentProcess() -> HANDLE;
+        pub fn GetCurrentProcessId() -> u32;
+    }
+    #[link(name = "ws2_32", kind = "raw-dylib")]
+    extern "system" {
+        pub fn closesocket(s: SOCKET) -> i32;
+        pub fn WSADuplicateSocketW(
+            s: SOCKET,
+            dwProcessId: u32,
+            lpProtocolInfo: *mut WSAPROTOCOL_INFOW,
+        ) -> i32;
+        pub fn WSAGetLastError() -> WSA_ERROR;
+        pub fn WSASocketW(
+            af: i32,
+            type_: i32,
+            protocol: i32,
+            lpProtocolInfo: *const WSAPROTOCOL_INFOW,
+            g: u32,
+            dwFlags: u32,
+        ) -> SOCKET;
+    }
+}
+#[cfg(all(windows, feature = "close"))]
+use bindings::*;
+
 #[cfg(all(windows, not(feature = "close")))]
 type HANDLE = isize;
 #[cfg(all(windows, not(feature = "close")))]

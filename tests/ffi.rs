@@ -7,10 +7,13 @@ use io_lifetimes::example_ffi::*;
 use io_lifetimes::{InvalidHandleError, OwnedHandle};
 #[cfg(windows)]
 use std::{convert::TryInto, os::windows::io::RawHandle, ptr::null_mut};
+
 #[cfg(windows)]
-use windows_sys::Win32::Storage::FileSystem::{
-    FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ, OPEN_EXISTING,
-};
+const FILE_ATTRIBUTE_NORMAL: u32 = 128;
+#[cfg(windows)]
+const FILE_GENERIC_READ: u32 = 1179785;
+#[cfg(windows)]
+const OPEN_EXISTING: u32 = 3;
 
 #[cfg(all(io_safety_is_in_std, unix))]
 #[test]
